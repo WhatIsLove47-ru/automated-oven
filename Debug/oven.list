@@ -39,11 +39,11 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING
  17 .debug_line   00015892  00000000  00000000  000ac5c9  2**0
                   CONTENTS, READONLY, DEBUGGING
- 18 .debug_str    0009d893  00000000  00000000  000c1e5b  2**0
+ 18 .debug_str    0009d892  00000000  00000000  000c1e5b  2**0
                   CONTENTS, READONLY, DEBUGGING
- 19 .comment      0000007b  00000000  00000000  0015f6ee  2**0
+ 19 .comment      0000007b  00000000  00000000  0015f6ed  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  0000c0fc  00000000  00000000  0015f76c  2**2
+ 20 .debug_frame  0000c0fc  00000000  00000000  0015f768  2**2
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -183,11 +183,11 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		if (UpdateFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
+		if (EventFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
  80001d8:	2206      	movs	r2, #6
  80001da:	492e      	ldr	r1, [pc, #184]	; (8000294 <main+0x10c>)
  80001dc:	482e      	ldr	r0, [pc, #184]	; (8000298 <main+0x110>)
- 80001de:	f000 fdc9 	bl	8000d74 <UpdateFlag>
+ 80001de:	f000 fdc9 	bl	8000d74 <EventFlag>
  80001e2:	4603      	mov	r3, r0
  80001e4:	2b00      	cmp	r3, #0
  80001e6:	d003      	beq.n	80001f0 <main+0x68>
@@ -197,11 +197,11 @@ int main(void)
  80001ec:	701a      	strb	r2, [r3, #0]
 			goto gotoUpdate;
  80001ee:	e03e      	b.n	800026e <main+0xe6>
-		} else if (UpdateFlag(&time_irq[1], &flag_irq[1], EXTI1_IRQn)) {
+		} else if (EventFlag(&time_irq[1], &flag_irq[1], EXTI1_IRQn)) {
  80001f0:	2207      	movs	r2, #7
  80001f2:	492b      	ldr	r1, [pc, #172]	; (80002a0 <main+0x118>)
  80001f4:	482b      	ldr	r0, [pc, #172]	; (80002a4 <main+0x11c>)
- 80001f6:	f000 fdbd 	bl	8000d74 <UpdateFlag>
+ 80001f6:	f000 fdbd 	bl	8000d74 <EventFlag>
  80001fa:	4603      	mov	r3, r0
  80001fc:	2b00      	cmp	r3, #0
  80001fe:	d003      	beq.n	8000208 <main+0x80>
@@ -211,29 +211,29 @@ int main(void)
  8000204:	701a      	strb	r2, [r3, #0]
 			goto gotoUpdate;
  8000206:	e032      	b.n	800026e <main+0xe6>
-		} else if (UpdateFlag(&time_irq[2], &flag_irq[2], EXTI2_IRQn)) {
+		} else if (EventFlag(&time_irq[2], &flag_irq[2], EXTI2_IRQn)) {
  8000208:	2208      	movs	r2, #8
  800020a:	4927      	ldr	r1, [pc, #156]	; (80002a8 <main+0x120>)
  800020c:	4827      	ldr	r0, [pc, #156]	; (80002ac <main+0x124>)
- 800020e:	f000 fdb1 	bl	8000d74 <UpdateFlag>
+ 800020e:	f000 fdb1 	bl	8000d74 <EventFlag>
  8000212:	4603      	mov	r3, r0
  8000214:	2b00      	cmp	r3, #0
  8000216:	d125      	bne.n	8000264 <main+0xdc>
 			goto gotoUpdate;
-		} else if (UpdateFlag(&time_irq[3], &flag_irq[3], EXTI3_IRQn)) {
+		} else if (EventFlag(&time_irq[3], &flag_irq[3], EXTI3_IRQn)) {
  8000218:	2209      	movs	r2, #9
  800021a:	4925      	ldr	r1, [pc, #148]	; (80002b0 <main+0x128>)
  800021c:	4825      	ldr	r0, [pc, #148]	; (80002b4 <main+0x12c>)
- 800021e:	f000 fda9 	bl	8000d74 <UpdateFlag>
+ 800021e:	f000 fda9 	bl	8000d74 <EventFlag>
  8000222:	4603      	mov	r3, r0
  8000224:	2b00      	cmp	r3, #0
  8000226:	d11f      	bne.n	8000268 <main+0xe0>
 			goto gotoUpdate;
-		} else if (UpdateFlag(&time_irq[4], &flag_irq[4], EXTI4_IRQn)) {
+		} else if (EventFlag(&time_irq[4], &flag_irq[4], EXTI4_IRQn)) {
  8000228:	220a      	movs	r2, #10
  800022a:	4923      	ldr	r1, [pc, #140]	; (80002b8 <main+0x130>)
  800022c:	4823      	ldr	r0, [pc, #140]	; (80002bc <main+0x134>)
- 800022e:	f000 fda1 	bl	8000d74 <UpdateFlag>
+ 800022e:	f000 fda1 	bl	8000d74 <EventFlag>
  8000232:	4603      	mov	r3, r0
  8000234:	2b00      	cmp	r3, #0
  8000236:	d119      	bne.n	800026c <main+0xe4>
@@ -284,7 +284,7 @@ int main(void)
  8000278:	4b13      	ldr	r3, [pc, #76]	; (80002c8 <main+0x140>)
  800027a:	22ff      	movs	r2, #255	; 0xff
  800027c:	701a      	strb	r2, [r3, #0]
-		if (UpdateFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
+		if (EventFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
  800027e:	e7ab      	b.n	80001d8 <main+0x50>
  8000280:	08000795 	.word	0x08000795
  8000284:	08000889 	.word	0x08000889
@@ -1954,9 +1954,9 @@ void TIM1_ReConfig(uint32_t period, uint32_t cnt) {
  8000d6c:	2000062c 	.word	0x2000062c
  8000d70:	20000090 	.word	0x20000090
 
-08000d74 <UpdateFlag>:
+08000d74 <EventFlag>:
 
-_Bool UpdateFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
+_Bool EventFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
  8000d74:	b580      	push	{r7, lr}
  8000d76:	b084      	sub	sp, #16
  8000d78:	af00      	add	r7, sp, #0
@@ -1968,7 +1968,7 @@ _Bool UpdateFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
  8000d82:	68bb      	ldr	r3, [r7, #8]
  8000d84:	781b      	ldrb	r3, [r3, #0]
  8000d86:	2b01      	cmp	r3, #1
- 8000d88:	d11a      	bne.n	8000dc0 <UpdateFlag+0x4c>
+ 8000d88:	d11a      	bne.n	8000dc0 <EventFlag+0x4c>
 			&& (HAL_GetTick() - *time_irq) > 100) {
  8000d8a:	f002 faf3 	bl	8003374 <HAL_GetTick>
  8000d8e:	4602      	mov	r2, r0
@@ -1976,9 +1976,9 @@ _Bool UpdateFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
  8000d92:	681b      	ldr	r3, [r3, #0]
  8000d94:	1ad3      	subs	r3, r2, r3
  8000d96:	2b64      	cmp	r3, #100	; 0x64
- 8000d98:	d912      	bls.n	8000dc0 <UpdateFlag+0x4c>
+ 8000d98:	d912      	bls.n	8000dc0 <EventFlag+0x4c>
 		__HAL_GPIO_EXTI_CLEAR_IT(exti);
- 8000d9a:	4a0c      	ldr	r2, [pc, #48]	; (8000dcc <UpdateFlag+0x58>)
+ 8000d9a:	4a0c      	ldr	r2, [pc, #48]	; (8000dcc <EventFlag+0x58>)
  8000d9c:	f997 3007 	ldrsb.w	r3, [r7, #7]
  8000da0:	6153      	str	r3, [r2, #20]
 		NVIC_ClearPendingIRQ(exti);
@@ -1999,7 +1999,7 @@ _Bool UpdateFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
  8000dba:	701a      	strb	r2, [r3, #0]
 			return (_Bool) 1;
  8000dbc:	2301      	movs	r3, #1
- 8000dbe:	e000      	b.n	8000dc2 <UpdateFlag+0x4e>
+ 8000dbe:	e000      	b.n	8000dc2 <EventFlag+0x4e>
 //		}
 	}
 	return (_Bool) 0;

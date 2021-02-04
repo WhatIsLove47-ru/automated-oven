@@ -440,7 +440,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM1_Init 2 */
-
+  HAL_TIM_Encoder_Start_IT(htim1, TIM_CHANNEL_1);
   /* USER CODE END TIM1_Init 2 */
 
 }
