@@ -157,7 +157,7 @@ uint8_t U8x8ByteSTM32HWSPI(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 void MainActivity(void);
 void OrderActivity(void);
 void TIM1_ReConfig(uint32_t period, uint32_t cnt);
-_Bool UpdateFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti);
+_Bool EventFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti);
 void ScreenUpdate(uint8_t button);
 static void RTC_TimeShow(uint8_t *showtime);
 /* USER CODE END PFP */
@@ -215,17 +215,17 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		if (UpdateFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
+		if (EventFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
 			activity = 0;
 			goto gotoUpdate;
-		} else if (UpdateFlag(&time_irq[1], &flag_irq[1], EXTI1_IRQn)) {
+		} else if (EventFlag(&time_irq[1], &flag_irq[1], EXTI1_IRQn)) {
 			activity = 1;
 			goto gotoUpdate;
-		} else if (UpdateFlag(&time_irq[2], &flag_irq[2], EXTI2_IRQn)) {
+		} else if (EventFlag(&time_irq[2], &flag_irq[2], EXTI2_IRQn)) {
 			goto gotoUpdate;
-		} else if (UpdateFlag(&time_irq[3], &flag_irq[3], EXTI3_IRQn)) {
+		} else if (EventFlag(&time_irq[3], &flag_irq[3], EXTI3_IRQn)) {
 			goto gotoUpdate;
-		} else if (UpdateFlag(&time_irq[4], &flag_irq[4], EXTI4_IRQn)) {
+		} else if (EventFlag(&time_irq[4], &flag_irq[4], EXTI4_IRQn)) {
 			goto gotoUpdate;
 		}
 		if (pointer != __HAL_TIM_GET_COUNTER(&htim1) / 2) {
@@ -768,7 +768,7 @@ void TIM1_ReConfig(uint32_t period, uint32_t cnt) {
 	htim1.Instance->CNT = cnt;
 }
 
-_Bool UpdateFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
+_Bool EventFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
 	if ((*flag_irq == 1)
 			&& (HAL_GetTick() - *time_irq) > 100) {
 		__HAL_GPIO_EXTI_CLEAR_IT(exti);
