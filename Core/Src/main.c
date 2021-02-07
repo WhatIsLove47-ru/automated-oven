@@ -40,11 +40,13 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+IWDG_HandleTypeDef hiwdg;
+
 RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi2;
 
-TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
@@ -148,7 +150,8 @@ static void MX_GPIO_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_RTC_Init(void);
-static void MX_TIM1_Init(void);
+static void MX_TIM2_Init(void);
+static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
 uint8_t U8x8Stm32GPIOAndDelay(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 		void *arg_ptr);
@@ -200,7 +203,8 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM3_Init();
   MX_RTC_Init();
-  MX_TIM1_Init();
+  MX_TIM2_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 	u8g2_Setup_st7920_s_128x64_f(&u8g2, U8G2_R0, U8x8ByteSTM32HWSPI,
 			U8x8Stm32GPIOAndDelay);
@@ -210,6 +214,8 @@ int main(void)
 	u8g2_SetFontDirection(&u8g2, 0);
 
 	ScreenUpdate(255);
+
+	GPIO_PinState six, seven;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -228,10 +234,12 @@ int main(void)
 		} else if (EventFlag(&time_irq[4], &flag_irq[4], EXTI4_IRQn)) {
 			goto gotoUpdate;
 		}
-		if (pointer != __HAL_TIM_GET_COUNTER(&htim1) / 2) {
-			pointer = __HAL_TIM_GET_COUNTER(&htim1) / 2;
-			goto gotoUpdate;
-		} else
+		//if (pointer != (__HAL_TIM_GET_COUNTER(&htim4) / 2)) {
+		//	pointer = (__HAL_TIM_GET_COUNTER(&htim4) / 2);
+		//	goto gotoUpdate;
+		//} else
+		//six = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6);
+		//seven = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7);
 			if (update != 255) {
 			gotoUpdate: ScreenUpdate(update);
 			update = 255;
@@ -256,11 +264,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE
+                              |RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -287,6 +297,34 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Reload = 2303;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
+
 }
 
 /**
@@ -396,52 +434,47 @@ static void MX_SPI2_Init(void)
 }
 
 /**
-  * @brief TIM1 Initialization Function
+  * @brief TIM2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM1_Init(void)
+static void MX_TIM2_Init(void)
 {
 
-  /* USER CODE BEGIN TIM1_Init 0 */
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-  /* USER CODE END TIM1_Init 0 */
+  /* USER CODE END TIM2_Init 0 */
 
-  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-  /* USER CODE BEGIN TIM1_Init 1 */
+  /* USER CODE BEGIN TIM2_Init 1 */
 
-  /* USER CODE END TIM1_Init 1 */
-  htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
-  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim1.Init.RepetitionCounter = 0;
-  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 5;
-  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
-  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
-  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 5;
-  if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK)
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 1999;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 35999;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN TIM1_Init 2 */
-  HAL_TIM_Encoder_Start_IT(&htim1, TIM_CHANNEL_1);
-  /* USER CODE END TIM1_Init 2 */
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -457,6 +490,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -464,11 +498,20 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 7199;
+  htim3.Init.Prescaler = 71;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 65535;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -528,6 +571,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PA15 */
   GPIO_InitStruct.Pin = GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -539,6 +588,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
@@ -556,6 +611,12 @@ static void MX_GPIO_Init(void)
 
   HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
@@ -710,6 +771,7 @@ void MainActivity(void) {
 }
 
 void OrderActivity(void) {
+
 	u8g2_FirstPage(&u8g2);
 	do {
 		u8g2_ClearBuffer(&u8g2);
@@ -722,10 +784,11 @@ void OrderActivity(void) {
 		u8g2_DrawHLine(&u8g2, 0, 15, 128);
 		u8g2_DrawUTF8(&u8g2, 1, 30, "Режим: 3");
 		//u8g2_DrawUTF8(&u8g2, 1, 46, "Время: 00:12:49");
-		uint8_t stime[9];
+		uint8_t stime[9], poin[9];
 		RTC_TimeShow(stime);
 		u8g2_DrawUTF8(&u8g2, 1, 46, stime);
-		u8g2_DrawUTF8(&u8g2, 1, 62, "3 pointer");
+		sprintf((char*) poin, "%9d", pointer);
+		u8g2_DrawUTF8(&u8g2, 1, 62, poin);
 		u8g2_SetDrawColor(&u8g2, 2);
 		u8g2_DrawBox(&u8g2, 0, 1 + 16 * (pointer + 1), 128, 15);
 	} while (u8g2_NextPage(&u8g2));
@@ -736,10 +799,10 @@ void ScreenUpdate(uint8_t button) {
 		activityOLD = activity;
 		switch (activity) {
 		case 0:
-			TIM1_ReConfig(7, 1);
+			//TIM4_ReConfig(7, 1);
 			break;
 		case 1:
-			TIM1_ReConfig(5, 1);
+			//TIM4_ReConfig(5, 1);
 			break;
 		default:
 			__NOP();
@@ -757,16 +820,16 @@ void ScreenUpdate(uint8_t button) {
 	}
 }
 
-void TIM1_ReConfig(uint32_t period, uint32_t cnt) {
-	if (HAL_TIM_Encoder_DeInit(&htim1) != HAL_OK) {
-		Error_Handler();
-	}
-	htim1.Init.Period = period;
-	if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK) {
-		Error_Handler();
-	}
-	htim1.Instance->CNT = cnt;
-}
+//void TIM4_ReConfig(uint32_t period, uint32_t cnt) {
+//	if (HAL_TIM_Encoder_DeInit(&htim4) != HAL_OK) {
+//		Error_Handler();
+//	}
+//	htim4.Init.Period = period;
+//	if (HAL_TIM_Encoder_Init(&htim4, &sConfig) != HAL_OK) {
+//		Error_Handler();
+//	}
+//	htim4.Instance->CNT = cnt;
+//}
 
 _Bool EventFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
 	if ((*flag_irq == 1)
