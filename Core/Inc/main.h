@@ -32,7 +32,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "music.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -61,7 +61,9 @@ void Error_Handler(void);
 
 /* Private defines -----------------------------------------------------------*/
 /* USER CODE BEGIN Private defines */
-
+uint32_t time_irq[5];
+uint8_t pointer, pointer_max, pointer_old, button, flag_irq[5];
+music_t Music;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

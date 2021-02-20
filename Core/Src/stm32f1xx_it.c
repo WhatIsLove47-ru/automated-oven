@@ -23,6 +23,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "music.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,8 +61,8 @@ extern RTC_HandleTypeDef hrtc;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 /* USER CODE BEGIN EV */
-extern uint8_t pointer, update;
-uint32_t time_irq = 0;
+//extern IWDG_HandleTypeDef hiwdg;
+uint32_t time_irq0 = 0;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -210,7 +211,8 @@ void EXTI0_IRQHandler(void)
   /* USER CODE END EXTI0_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
   /* USER CODE BEGIN EXTI0_IRQn 1 */
-
+	flag_irq[0] = 1;
+	time_irq[0] = HAL_GetTick();
   /* USER CODE END EXTI0_IRQn 1 */
 }
 
@@ -224,7 +226,8 @@ void EXTI1_IRQHandler(void)
   /* USER CODE END EXTI1_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
   /* USER CODE BEGIN EXTI1_IRQn 1 */
-
+	flag_irq[1] = 1;
+	time_irq[1] = HAL_GetTick();
   /* USER CODE END EXTI1_IRQn 1 */
 }
 
@@ -238,7 +241,8 @@ void EXTI2_IRQHandler(void)
   /* USER CODE END EXTI2_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
   /* USER CODE BEGIN EXTI2_IRQn 1 */
-
+	flag_irq[2] = 1;
+	time_irq[2] = HAL_GetTick();
   /* USER CODE END EXTI2_IRQn 1 */
 }
 
@@ -252,7 +256,8 @@ void EXTI3_IRQHandler(void)
   /* USER CODE END EXTI3_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);
   /* USER CODE BEGIN EXTI3_IRQn 1 */
-
+	flag_irq[3] = 1;
+	time_irq[3] = HAL_GetTick();
   /* USER CODE END EXTI3_IRQn 1 */
 }
 
@@ -266,7 +271,8 @@ void EXTI4_IRQHandler(void)
   /* USER CODE END EXTI4_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
   /* USER CODE BEGIN EXTI4_IRQn 1 */
-
+	flag_irq[4] = 1;
+	time_irq[4] = HAL_GetTick();
   /* USER CODE END EXTI4_IRQn 1 */
 }
 
@@ -276,12 +282,15 @@ void EXTI4_IRQHandler(void)
 void EXTI9_5_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI9_5_IRQn 0 */
-	if (HAL_GetTick() - time_irq > 50)
-		if (!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)) {
-			pointer--;
-			update = 5;
-			time_irq = HAL_GetTick();
+	if (HAL_GetTick() - time_irq0 > 50
+			&& !HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)) {
+		pointer--;
+		button = 5;
+		time_irq0 = HAL_GetTick();
+		if (pointer > pointer_max) {
+			pointer = pointer_max;
 		}
+	}
   /* USER CODE END EXTI9_5_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
@@ -299,7 +308,7 @@ void TIM2_IRQHandler(void)
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-
+	//HAL_IWDG_Refresh(&hiwdg);
   /* USER CODE END TIM2_IRQn 1 */
 }
 
@@ -313,7 +322,7 @@ void TIM3_IRQHandler(void)
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
-
+	Sound_IRQHandler(&Music);
   /* USER CODE END TIM3_IRQn 1 */
 }
 
@@ -323,11 +332,14 @@ void TIM3_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-	if (HAL_GetTick() - time_irq > 50)
-		if (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6)) {
-			pointer++;
-			update = 6;
+	if (HAL_GetTick() - time_irq0 > 50 && !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6)) {
+		pointer++;
+		button = 6;
+		time_irq0 = HAL_GetTick();
+		if (pointer > pointer_max) {
+			pointer = 0;
 		}
+	}
   /* USER CODE END EXTI15_10_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */

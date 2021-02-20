@@ -22,7 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
 #include "u8g2/u8g2.h"
+#include "music.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,6 +34,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define MUSICSIZE 48
+#define PRESCALER 72
+//#define bitmap_width 64
+//#define bitmap_height 16
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -40,8 +46,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-IWDG_HandleTypeDef hiwdg;
-
 RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi2;
@@ -139,9 +143,19 @@ TIM_Encoder_InitTypeDef sConfig = { 0 };
 //		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 //		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 u8g2_t u8g2;
-uint32_t time_irq[5];
-uint8_t activityOLD = 255, activity = 1, pointer = 0, flag_irq[5] = { 0 },
-		update = 255;
+uint8_t activityOLD = 255, activity = 0;
+_Bool lowerHeat = 0, upperHeat = 0, heatOn = 0;
+
+static SoundTypeDef Notes[MUSICSIZE] = { { C * 2, t4 }, { G, t4 }, { A_, t8 }, {
+F, t8 }, { D_, t8 }, { F, t8 }, { G, t4 }, { C, t2 }, { C * 2, t4 }, {
+G, t4 }, { A_, t8 }, { F, t8 }, { D_, t8 }, { F, t8 }, { G, t4 }, { C * 2, t4 },
+		{ 0, t8 }, { D_, t8 }, { D_, t8 }, { D_, t8 }, { G, t8 }, {
+		A_, t4 }, { D_ * 2, t8 }, { C_ * 2, t8 }, { C * 2, t8 }, { C * 2, t8 },
+		{ C * 2, t8 }, { C * 2, t8 }, { A_, t8 }, { F, t8 }, { D_, t8 },
+		{ F, t8 }, { G, t4 }, { C * 2, t2 }, { C * 2, t2 }, { A_, t8 },
+		{ G_, t8 }, { G, t8 }, { G_, t8 }, { A_, t2 }, { A_, t4 },
+		{ C * 2, t4 }, { A_, t8 }, { F, t8 }, { D_, t8 }, { F, t8 }, { G, t4 },
+		{ C * 2, t2 } };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -151,24 +165,22 @@ static void MX_SPI2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_RTC_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
 uint8_t U8x8Stm32GPIOAndDelay(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 		void *arg_ptr);
 uint8_t U8x8ByteSTM32HWSPI(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 		void *arg_ptr);
 void MainActivity(void);
-void OrderActivity(void);
-void TIM1_ReConfig(uint32_t period, uint32_t cnt);
+void OrderActivity(uint8_t pointer);
 _Bool EventFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti);
 void ScreenUpdate(uint8_t button);
 static void RTC_TimeShow(uint8_t *showtime);
+void BtnCheck(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#define bitmap_width 64
-#define bitmap_height 16
 
 /* USER CODE END 0 */
 
@@ -178,7 +190,12 @@ static void RTC_TimeShow(uint8_t *showtime);
  */
 int main(void) {
 	/* USER CODE BEGIN 1 */
-
+	pointer = 0;
+	pointer_old = 0;
+	pointer_max = 255;
+	button = 255;
+	for (uint8_t i = 0;i<5;i++)
+		flag_irq[i] = 0;
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -203,7 +220,6 @@ int main(void) {
 	MX_TIM3_Init();
 	MX_RTC_Init();
 	MX_TIM2_Init();
-	MX_IWDG_Init();
 	/* USER CODE BEGIN 2 */
 	u8g2_Setup_st7920_s_128x64_f(&u8g2, U8G2_R0, U8x8ByteSTM32HWSPI,
 			U8x8Stm32GPIOAndDelay);
@@ -213,35 +229,16 @@ int main(void) {
 	u8g2_SetFontDirection(&u8g2, 0);
 
 	ScreenUpdate(255);
-
-	GPIO_PinState six, seven;
+	HAL_TIM_Base_Start_IT(&htim2);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-		if (EventFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
-			activity = 0;
-			goto gotoUpdate;
-		} else if (EventFlag(&time_irq[1], &flag_irq[1], EXTI1_IRQn)) {
-			activity = 1;
-			goto gotoUpdate;
-		} else if (EventFlag(&time_irq[2], &flag_irq[2], EXTI2_IRQn)) {
-			goto gotoUpdate;
-		} else if (EventFlag(&time_irq[3], &flag_irq[3], EXTI3_IRQn)) {
-			goto gotoUpdate;
-		} else if (EventFlag(&time_irq[4], &flag_irq[4], EXTI4_IRQn)) {
-			goto gotoUpdate;
-		}
-		//if (pointer != (__HAL_TIM_GET_COUNTER(&htim4) / 2)) {
-		//	pointer = (__HAL_TIM_GET_COUNTER(&htim4) / 2);
-		//	goto gotoUpdate;
-		//} else
-		//six = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_6);
-		//seven = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_7);
-		if (update != 255) {
-			gotoUpdate: ScreenUpdate(update);
-			update = 255;
+		BtnCheck();
+		if (button != 255) {
+			ScreenUpdate(button);
+			button = 255;
 		}
 		/* USER CODE END WHILE */
 
@@ -262,13 +259,12 @@ void SystemClock_Config(void) {
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
 	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI
-			| RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_LSE;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE
+			| RCC_OSCILLATORTYPE_LSE;
 	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
 	RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
 	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -292,32 +288,6 @@ void SystemClock_Config(void) {
 	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
 		Error_Handler();
 	}
-}
-
-/**
- * @brief IWDG Initialization Function
- * @param None
- * @retval None
- */
-static void MX_IWDG_Init(void) {
-
-	/* USER CODE BEGIN IWDG_Init 0 */
-
-	/* USER CODE END IWDG_Init 0 */
-
-	/* USER CODE BEGIN IWDG_Init 1 */
-
-	/* USER CODE END IWDG_Init 1 */
-	hiwdg.Instance = IWDG;
-	hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
-	hiwdg.Init.Reload = 2303;
-	if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN IWDG_Init 2 */
-
-	/* USER CODE END IWDG_Init 2 */
-
 }
 
 /**
@@ -565,7 +535,7 @@ static void MX_GPIO_Init(void) {
 
 	/*Configure GPIO pin : PB4 */
 	GPIO_InitStruct.Pin = GPIO_PIN_4;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
 	GPIO_InitStruct.Pull = GPIO_PULLUP;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -661,46 +631,6 @@ uint8_t U8x8ByteSTM32HWSPI(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 	return 1;
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	switch (GPIO_Pin) {
-	case GPIO_PIN_0:
-		HAL_NVIC_DisableIRQ(EXTI0_IRQn);
-		flag_irq[0]++;
-		time_irq[0] = HAL_GetTick();
-		update = 0;
-		break;
-	case GPIO_PIN_1:
-		HAL_NVIC_DisableIRQ(EXTI1_IRQn);
-		flag_irq[1]++;
-		time_irq[1] = HAL_GetTick();
-		update = 1;
-		break;
-	case GPIO_PIN_2:
-		HAL_NVIC_DisableIRQ(EXTI2_IRQn);
-		flag_irq[2]++;
-		time_irq[2] = HAL_GetTick();
-		update = 2;
-		break;
-	case GPIO_PIN_3:
-		HAL_NVIC_DisableIRQ(EXTI3_IRQn);
-		flag_irq[3]++;
-		time_irq[3] = HAL_GetTick();
-		update = 3;
-		break;
-	case GPIO_PIN_4:
-		HAL_NVIC_DisableIRQ(EXTI4_IRQn);
-		flag_irq[4]++;
-		time_irq[4] = HAL_GetTick();
-		update = 4;
-	}
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (htim == &htim2) {
-		HAL_IWDG_Refresh(&hiwdg);
-	}
-}
-
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
 	//sprintf((char*) stAlarm, "ZAZ");
 }
@@ -717,24 +647,23 @@ void MainActivity(void) {
 		u8g2_DrawFrame(&u8g2, 0, 33, 15, 15);
 		u8g2_DrawFilledEllipse(&u8g2, 0, 47, 7, 7, U8G2_DRAW_UPPER_RIGHT);
 		u8g2_DrawFrame(&u8g2, 0, 49, 15, 15);
-		//if (lowerHeat)
-		u8g2_DrawFilledEllipse(&u8g2, 7, 63, 7, 3,
-		U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_UPPER_RIGHT);
-		//if (upperHeat)
-		u8g2_DrawFilledEllipse(&u8g2, 7, 49, 7, 3,
-		U8G2_DRAW_LOWER_LEFT | U8G2_DRAW_LOWER_RIGHT);
-		//if (heatOn)
-		//{
-		u8g2_DrawVLine(&u8g2, 5, 54, 5);
-		u8g2_DrawVLine(&u8g2, 9, 54, 5);
-		u8g2_SetDrawColor(&u8g2, 2);
-		u8g2_DrawHLine(&u8g2, 5, 56, 2);
-		u8g2_DrawHLine(&u8g2, 9, 56, 2);
-		u8g2_SetDrawColor(&u8g2, 1);
-		//}
+		if (lowerHeat)
+			u8g2_DrawFilledEllipse(&u8g2, 7, 63, 7, 3,
+			U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_UPPER_RIGHT);
+		if (upperHeat)
+			u8g2_DrawFilledEllipse(&u8g2, 7, 49, 7, 3,
+			U8G2_DRAW_LOWER_LEFT | U8G2_DRAW_LOWER_RIGHT);
+		if (heatOn) {
+			u8g2_DrawVLine(&u8g2, 5, 54, 5);
+			u8g2_DrawVLine(&u8g2, 9, 54, 5);
+			u8g2_SetDrawColor(&u8g2, 2);
+			u8g2_DrawHLine(&u8g2, 5, 56, 2);
+			u8g2_DrawHLine(&u8g2, 9, 56, 2);
+			u8g2_SetDrawColor(&u8g2, 1);
+		}
 		uint8_t stime[9];
 		RTC_TimeShow(stime);
-		u8g2_DrawUTF8(&u8g2, 17, 16 * 1 - 2, stime);
+		u8g2_DrawUTF8(&u8g2, 17, 16 * 1 - 2, (const char*) stime);
 		//u8g2_DrawUTF8(&u8g2, 17, 16 * 2 - 2, stAlarm);
 		//u8g2_DrawUTF8(&u8g2, 17, 16 * 3 - 2, time);
 		//u8g2_DrawUTF8(&u8g2, 17, 16 * 4 - 2, time);
@@ -749,39 +678,75 @@ void MainActivity(void) {
 	} while (u8g2_NextPage(&u8g2));
 }
 
-void OrderActivity(void) {
+void OrderActivity(uint8_t ppointer) {
 
 	u8g2_FirstPage(&u8g2);
 	do {
 		u8g2_ClearBuffer(&u8g2);
 		u8g2_SetDrawColor(&u8g2, 1);
 
-		u8g2_DrawFrame(&u8g2, 0, 1, 15, 15);
-		u8g2_DrawFilledEllipse(&u8g2, 14, 1, 7, 7, U8G2_DRAW_LOWER_LEFT);
-
-		u8g2_DrawUTF8(&u8g2, 17, 14, "Меню");
+		if (ppointer == 3) {
+			u8g2_DrawUTF8(&u8g2, 0, 14, "Меню духовки");
+		} else {
+			u8g2_DrawFrame(&u8g2, 0, 1, 15, 15);
+			if (ppointer == 0) {
+				u8g2_DrawFilledEllipse(&u8g2, 14, 1, 7, 7,
+						U8G2_DRAW_LOWER_LEFT);
+			} else if (ppointer == 1) {
+				u8g2_DrawFilledEllipse(&u8g2, 14, 14, 7, 7,
+						U8G2_DRAW_UPPER_LEFT);
+			} else if (ppointer == 2) {
+				u8g2_DrawFilledEllipse(&u8g2, 0, 14, 7, 7,
+						U8G2_DRAW_UPPER_RIGHT);
+			}
+			u8g2_DrawUTF8(&u8g2, 17, 14, "Меню");
+		}
 		u8g2_DrawHLine(&u8g2, 0, 15, 128);
 		u8g2_DrawUTF8(&u8g2, 1, 30, "Режим: 3");
 		//u8g2_DrawUTF8(&u8g2, 1, 46, "Время: 00:12:49");
-		uint8_t stime[9], poin[3];
+		uint8_t stime[9], poin[4];
 		RTC_TimeShow(stime);
-		u8g2_DrawUTF8(&u8g2, 1, 46, stime);
+		u8g2_DrawUTF8(&u8g2, 1, 46, (const char*) stime);
 		sprintf((char*) poin, "%3d", pointer);
-		u8g2_DrawUTF8(&u8g2, 1, 62, poin);
+		u8g2_DrawUTF8(&u8g2, 1, 62, (const char*) poin);
 		u8g2_SetDrawColor(&u8g2, 2);
 		u8g2_DrawBox(&u8g2, 0, 1 + 16 * (pointer + 1), 128, 15);
 	} while (u8g2_NextPage(&u8g2));
 }
 
 void ScreenUpdate(uint8_t button) {
+	switch (button) {
+	case 0:
+		activity = 0;
+		break;
+	case 1:
+		//activity = 1;
+		//lowerHeat = !lowerHeat;
+		break;
+	case 2:
+		PlayMusic(&Music, Notes, &htim3, MUSICSIZE, PRESCALER, TIM_CHANNEL_3);
+		break;
+	case 3:
+		//upperHeat = !upperHeat;
+		break;
+	case 4:
+		//heatOn = !heatOn;
+		activity = 1;
+		pointer_old = pointer;
+		break;
+	default:
+		__NOP();
+	}
 	if (activityOLD != activity) {
 		activityOLD = activity;
 		switch (activity) {
 		case 0:
-			//TIM4_ReConfig(7, 1);
+			pointer_max = 3;
+			pointer = 0;
 			break;
 		case 1:
-			//TIM4_ReConfig(5, 1);
+			pointer_max = 2;
+			pointer = 0;
 			break;
 		default:
 			__NOP();
@@ -792,36 +757,20 @@ void ScreenUpdate(uint8_t button) {
 		MainActivity();
 		break;
 	case 1:
-		OrderActivity();
+		OrderActivity(pointer_old);
 		break;
 	default:
 		__NOP();
 	}
 }
 
-//void TIM4_ReConfig(uint32_t period, uint32_t cnt) {
-//	if (HAL_TIM_Encoder_DeInit(&htim4) != HAL_OK) {
-//		Error_Handler();
-//	}
-//	htim4.Init.Period = period;
-//	if (HAL_TIM_Encoder_Init(&htim4, &sConfig) != HAL_OK) {
-//		Error_Handler();
-//	}
-//	htim4.Instance->CNT = cnt;
-//}
-
 _Bool EventFlag(uint32_t *time_irq, uint8_t *flag_irq, IRQn_Type exti) {
-	if ((*flag_irq == 1) && (HAL_GetTick() - *time_irq) > 100) {
+	if ((*flag_irq != 0) && (HAL_GetTick() - *time_irq) > 150) {
 		__HAL_GPIO_EXTI_CLEAR_IT(exti);
 		NVIC_ClearPendingIRQ(exti);
 		HAL_NVIC_EnableIRQ(exti);
-//		if (*flag_irq == 1) {
-//			(*flag_irq)++;
-//			return (_Bool) 0;
-//		} else {
 		*flag_irq = 0;
 		return (_Bool) 1;
-//		}
 	}
 	return (_Bool) 0;
 }
@@ -837,6 +786,20 @@ static void RTC_TimeShow(uint8_t *showtime) {
 	/* Display time Format : hh:mm:ss */
 	sprintf((char*) showtime, "%02d:%02d:%02d", stimestructureget.Hours,
 			stimestructureget.Minutes, stimestructureget.Seconds);
+}
+
+void BtnCheck(void) {
+	if (EventFlag(&time_irq[0], &flag_irq[0], EXTI0_IRQn)) {
+		button = 0;
+	} else if (EventFlag(&time_irq[1], &flag_irq[1], EXTI1_IRQn)) {
+		button = 1;
+	} else if (EventFlag(&time_irq[2], &flag_irq[2], EXTI2_IRQn)) {
+		button = 2;
+	} else if (EventFlag(&time_irq[3], &flag_irq[3], EXTI3_IRQn)) {
+		button = 3;
+	} else if (EventFlag(&time_irq[4], &flag_irq[4], EXTI4_IRQn)) {
+		button = 4;
+	}
 }
 /* USER CODE END 4 */
 
