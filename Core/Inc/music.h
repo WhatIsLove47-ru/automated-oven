@@ -5,8 +5,12 @@
  *      Author: Vlad
  */
 
-#ifndef INC_MUSIC_H_
-#define INC_MUSIC_H_
+#ifndef __MUSIC_H
+#define __MUSIC_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "stm32f1xx_hal.h"
 
@@ -15,7 +19,7 @@ typedef struct {
 	uint16_t time;
 } SoundTypeDef;
 
-typedef struct music_struct {
+typedef struct {
 	TIM_HandleTypeDef *htim;
 	unsigned char TIM_Channel;
 	int Step;
@@ -54,4 +58,8 @@ void PauseMusic(music_t *Music);
 void StopMusic(music_t *Music);
 void Sound_IRQHandler(music_t *Music);
 
-#endif /* INC_MUSIC_H_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __MUSIC_H */
