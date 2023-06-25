@@ -1,7 +1,7 @@
 /*
  * all_possible_NextStep.h
  *
- *  Created on: Mar 24, 2021
+ *  Created on: Mar 24, 2023
  *      Author: Vlad
  */
 
@@ -12,16 +12,17 @@
 extern "C" {
 #endif
 
-#include <templates.h>
-#ifdef T2
-#undef T2
+//#include <templates.h>
+//#include <hotplaces.h>
+#ifdef T1
+#undef T1
 #endif
-#define T2 Hotplace
+#define T1 Hotplace
 #include <NextStep_as_template.h>
-#ifdef T2
-#undef T2
+#ifdef T1
+#undef T1
 #endif
-#define T2 Oven
+#define T1 Oven
 #include <NextStep_as_template.h>
 
 #ifdef __cplusplus
@@ -29,3 +30,4 @@ extern "C" {
 #endif
 
 #endif /* __ALL_POSSIBLE_NEXTSTEP_H */
+/*****END OF FILE****/

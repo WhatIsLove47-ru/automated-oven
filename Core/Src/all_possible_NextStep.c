@@ -1,21 +1,28 @@
-/*
- * all_possible_NextStep.c
- *
- *  Created on: Mar 24, 2021
- *      Author: Vlad
- */
-
+ /* USER CODE BEGIN Header */
+ /**
+  ******************************************************************************
+  * @file           : all_possible_NextStep.c
+  * @brief          : All posible templates for NextStep_as_template.c
+  ******************************************************************************
+  * @attention
+  *
+  *  <h2><center>Created on: Mar 24, 2023
+  *  Author: Vlad</center></h2>
+  *
+  ******************************************************************************
+  */
+  /* USER CODE END Header */
 #include <templates.h>
 #include <hotplaces.h>
-#include "all_possible_NextStep.h"
-#ifdef T2
-#undef T2
+#include <all_possible_NextStep.h>
+#ifdef T1
+#undef T1
 #endif
-#define T2 Hotplace
+#define T1 Hotplace
 #include "NextStep_as_template.c"
-#ifdef T2
-#undef T2
+#ifdef T1
+#undef T1
 #endif
-#define T2 Oven
+#define T1 Oven
 #include "NextStep_as_template.c"
-
+/*****END OF FILE****/

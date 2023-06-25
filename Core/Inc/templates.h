@@ -1,7 +1,7 @@
 /*
  * templates.h
  *
- *  Created on: Mar 24, 2021
+ *  Created on: Mar 24, 2023
  *      Author: Vlad
  */
 
@@ -20,3 +20,4 @@ extern "C" {
 #endif
 
 #endif /* INC_TEMPLATES_H_ */
+/*****END OF FILE****/

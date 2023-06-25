@@ -60,15 +60,18 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define MAX6675_CS_Pin GPIO_PIN_4
+#define MAX6675_CS_GPIO_Port GPIOA
 #define SR_Pin GPIO_PIN_1
 #define SR_GPIO_Port GPIOB
-#define MAX6675_CS_Pin GPIO_PIN_10
-#define MAX6675_CS_GPIO_Port GPIOB
 #define SPI2_CS_Pin GPIO_PIN_12
 #define SPI2_CS_GPIO_Port GPIOB
 #define SPI2_RST_Pin GPIO_PIN_15
 #define SPI2_RST_GPIO_Port GPIOA
+
 /* USER CODE BEGIN Private defines */
+//#define Debug_WIFI
+
 #define MUSICSIZE 48
 #define PRESCALER 72
 typedef enum {
@@ -87,11 +90,11 @@ typedef struct {
 	_Bool long_state;
 } Button;
 
-Button btn[5];
-uint16_t btns, pointer, pointer_max;
-_Bool update;
+extern Button btn[5];
+extern uint16_t btns, pointer, pointer_max;
+extern _Bool update;
 
-music_t Music;
+extern music_t Music;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
@@ -99,5 +102,4 @@ music_t Music;
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+/*****END OF FILE****/

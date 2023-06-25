@@ -1,7 +1,7 @@
 /*
  * hotplaces.h
  *
- *  Created on: Mar 18, 2021
+ *  Created on: Mar 18, 2023
  *      Author: Vlad
  */
 
@@ -12,7 +12,9 @@
 extern "C" {
 #endif
 
-#include "main.h"
+//#include <main.h>
+#include <GyverRelay.h>
+#include <templates.h>
 
 typedef enum {
 	ZERO = 0x00u,
@@ -22,11 +24,11 @@ typedef enum {
 	FOUR = 0x14,
 	FIVE = 0x1C,
 	SIX = 0x1D
-} HOTPLACE_TEMP;
+} HOTPLACE_STATE;
 
 typedef struct {
 	RTC_TimeTypeDef time;
-	HOTPLACE_TEMP state;
+	HOTPLACE_STATE state;
 } Hotplace_Profile;
 
 typedef struct {
@@ -76,16 +78,22 @@ extern SPI_HandleTypeDef hspi1;
 extern TIM_HandleTypeDef htim3;
 extern SoundTypeDef Notes[MUSICSIZE];
 
-void SetCustomOProfile(Oven *oven, uint8_t state, uint16_t targetTemp,
-		RTC_TimeTypeDef *time);
 void SetState(Oven *oven, Hotplace *hotplace);
-void SetCustomHProfile(Hotplace *hotplace, uint8_t arg, uint8_t state,
+#ifdef Debug_WIFI
+void WIFIDebug(Oven *oven);
+#endif
+void TEMPLATE(SetCustomProfile, Hotplace)(Hotplace *hotplace, uint8_t arg, uint8_t state,
 		RTC_TimeTypeDef *time);
-uint8_t GetTempH(HOTPLACE_TEMP hotplace_temp);
-uint8_t GetStateO(OVEN_STATE oven_state);
+void TEMPLATE(SetCustomProfile, Oven)(Oven *oven, uint8_t state, uint16_t targetTemp,
+		RTC_TimeTypeDef *time);
+uint8_t TEMPLATE(GetState, HOTPLACE_STATE)(HOTPLACE_STATE hotplace_temp);
+uint8_t TEMPLATE(GetState, OVEN_STATE)(OVEN_STATE oven_state);
+uint8_t TEMPLATE(isNewState, Hotplace)(Hotplace *hotplace);
+uint8_t TEMPLATE(isNewState, Oven)(Oven *hotplace);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* INC_HOTPLACES_H_ */
+/*****END OF FILE****/

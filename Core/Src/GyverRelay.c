@@ -1,3 +1,17 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : GyverRelay.c
+ * @brief          : Class relay funcs
+ ******************************************************************************
+ * @attention
+ *
+ *  <h2><center>Created on: Mar 24, 2023
+ *  Author: Vlad</center></h2>
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
 #include <GyverRelay.h>
 
 void GyverRelay(relay_t *relay, double k, uint32_t setpoint,
@@ -49,3 +63,4 @@ _Bool GyverRelay_getResultTimer(relay_t *relay) {
 	GyverRelay_compute(relay, 1.0);
 	return relay->output;
 }
+/*****END OF FILE****/

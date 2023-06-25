@@ -1,3 +1,17 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : music.c
+ * @brief          : Class Music
+ ******************************************************************************
+ * @attention
+ *
+ *  <h2><center>Created on: Mar 19, 2023
+ *  Author: Vlad</center></h2>
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
 #include "music.h"
 #include <math.h>
 
@@ -66,3 +80,4 @@ void Sound_IRQHandler(music_t *Music) {
 		}
 	}
 }
+/*****END OF FILE****/

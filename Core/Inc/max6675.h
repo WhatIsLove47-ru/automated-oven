@@ -1,3 +1,9 @@
+/*
+ * max6675.h
+ *
+ *  Created on: Mar 19, 2023
+ *      Author: Vlad
+ */
 #ifndef __MAX6675_H
 #define __MAX6675_H
 
@@ -7,8 +13,8 @@ extern "C" {
 
 #include "stm32f1xx_hal.h"
 
-#define MAX6675_CS_Pin GPIO_PIN_10
-#define MAX6675_CS_GPIO_Port GPIOB
+#define MAX6675_CS_Pin GPIO_PIN_4
+#define MAX6675_CS_GPIO_Port GPIOA
 
 #define MAX6675_CS_SET() HAL_GPIO_WritePin(MAX6675_CS_GPIO_Port, MAX6675_CS_Pin, GPIO_PIN_RESET)
 #define MAX6675_CS_RESET() HAL_GPIO_WritePin(MAX6675_CS_GPIO_Port, MAX6675_CS_Pin, GPIO_PIN_SET)
@@ -22,3 +28,4 @@ void Max6675_ReadReg(SPI_HandleTypeDef *hspi);
 #endif
 
 #endif /* INC_MAX6675_H_ */
+/*****END OF FILE****/

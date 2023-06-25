@@ -28,9 +28,8 @@
 #include <string.h>
 #include <hotplaces.h>
 #include <max6675.h>
-#include <all_possible_isNewState.h>
-#include <GyverRelay.h>
 #include <stdlib.h>
+#include <esp_01.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,8 +59,13 @@ DMA_HandleTypeDef hdma_spi1_tx;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
-/* USER CODE BEGIN PV */
+UART_HandleTypeDef huart3;
 
+/* USER CODE BEGIN PV */
+Button btn[5];
+uint16_t btns, pointer, pointer_max;
+_Bool update;
+music_t Music;
 TIM_Encoder_InitTypeDef sConfig = { };
 //static unsigned char bitmap[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 //		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -154,20 +158,20 @@ u8g2_t u8g2;
 Oven oven = { };
 Hotplace hotplace[3] = { };
 relay_t relay = { };
-uint32_t reg = 2500;
-const char i0[] = "Parameter 0:";
-const char i1[] = "Parameter 1:";
-const char i2[] = "Parameter 2:";
-const char i3[] = "Parameter 3:";
-const char i4[] = "Parameter 4:";
-const char i5[] = "Parameter 5:";
-const char i6[] = "Parameter 6:";
-const char i7[] = "Parameter 7:";
-const char i8[] = "Parameter 8:";
-const char i9[] = "Parameter 9:";
-const char i10[] = "Parameter 10:";
-const char i11[] = "Parameter 11:";
-const char *const names[] = { i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11 };
+uint32_t reg = 25; //25 degrees Celsius
+//const char i0[] = "Parameter 0:";
+//const char i1[] = "Parameter 1:";
+//const char i2[] = "Parameter 2:";
+//const char i3[] = "Parameter 3:";
+//const char i4[] = "Parameter 4:";
+//const char i5[] = "Parameter 5:";
+//const char i6[] = "Parameter 6:";
+//const char i7[] = "Parameter 7:";
+//const char i8[] = "Parameter 8:";
+//const char i9[] = "Parameter 9:";
+//const char i10[] = "Parameter 10:";
+//const char i11[] = "Parameter 11:";
+//const char *const names[] = { i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11 };
 SoundTypeDef Notes[MUSICSIZE] = { { C * 2, t4 }, { G, t4 }, { A_, t8 }, {
 F, t8 }, { D_, t8 }, { F, t8 }, { G, t4 }, { C, t2 }, { C * 2, t4 }, {
 G, t4 }, { A_, t8 }, { F, t8 }, { D_, t8 }, { F, t8 }, { G, t4 }, { C * 2, t4 },
@@ -190,6 +194,7 @@ static void MX_TIM3_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 uint8_t U8x8Stm32GPIOAndDelay(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 		void *arg_ptr);
@@ -205,7 +210,7 @@ static uint8_t TemperatureMenuH(uint8_t arg);
 static uint16_t TemperatureMenuO(uint8_t arg);
 static RTC_TimeTypeDef TimeMenu(uint8_t arg);
 static uint16_t StateMenuO(uint8_t arg);
-static void CustomAlgorithm(uint8_t arg);
+//static void CustomAlgorithm(uint8_t arg);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -214,11 +219,12 @@ static void CustomAlgorithm(uint8_t arg);
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
-int main(void) {
-	/* USER CODE BEGIN 1 */
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
 	RTC_TimeTypeDef *time = calloc(1, sizeof(RTC_TimeTypeDef));
 	pointer = 0;
 	btns = 0;
@@ -231,35 +237,34 @@ int main(void) {
 		btn[i].short_state = 0;
 		btn[i].long_state = 0;
 	}
-	SetCustomOProfile(&oven, 0, 0, time);
-	free(time);
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_DMA_Init();
-	MX_SPI2_Init();
-	MX_TIM3_Init();
-	MX_RTC_Init();
-	MX_SPI1_Init();
-	MX_TIM4_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_SPI2_Init();
+  MX_TIM3_Init();
+  MX_RTC_Init();
+  MX_SPI1_Init();
+  MX_TIM4_Init();
+  MX_USART3_UART_Init();
+  /* USER CODE BEGIN 2 */
 	u8g2_Setup_st7920_s_128x64_f(&u8g2, U8G2_R0, U8x8ByteSTM32HWSPI,
 			U8x8Stm32GPIOAndDelay);
 	u8g2_InitDisplay(&u8g2); // send init sequence to the display, display is in sleep mode after this,
@@ -267,114 +272,128 @@ int main(void) {
 	u8g2_SetFont(&u8g2, u8g2_font_6x12_t_cyrillic);
 	u8g2_SetFontDirection(&u8g2, 0);
 
-	HAL_TIM_Base_Start_IT(&htim4);
-	HAL_RTCEx_SetSecond_IT(&hrtc);
+#ifdef Debug_WIFI
+	esp_Init();
+#endif
+	TEMPLATE(SetCustomProfile, Oven)(&oven, 0, 0, time);
+	free(time);
 	cs_strob();
 	SetState(&oven, hotplace);
+	HAL_TIM_Base_Start_IT(&htim4);
+	HAL_RTCEx_SetSecond_IT(&hrtc);
 	MainMenu();
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
-void SystemClock_Config(void) {
-	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
-	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE
-			| RCC_OSCILLATORTYPE_LSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
-		Error_Handler();
-	}
-	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-	PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
-		Error_Handler();
-	}
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
- * @brief RTC Initialization Function
- * @param None
- * @retval None
- */
-static void MX_RTC_Init(void) {
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
 
-	/* USER CODE BEGIN RTC_Init 0 */
+  /* USER CODE BEGIN RTC_Init 0 */
 
-	/* USER CODE END RTC_Init 0 */
+  /* USER CODE END RTC_Init 0 */
 
-	RTC_TimeTypeDef sTime = { 0 };
-	RTC_DateTypeDef DateToUpdate = { 0 };
+  RTC_TimeTypeDef sTime = {0};
+  RTC_DateTypeDef DateToUpdate = {0};
 
-	/* USER CODE BEGIN RTC_Init 1 */
+  /* USER CODE BEGIN RTC_Init 1 */
 	//RTC_AlarmTypeDef sAlarm = {};
-	/* USER CODE END RTC_Init 1 */
-	/** Initialize RTC Only
-	 */
-	hrtc.Instance = RTC;
-	hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
-	hrtc.Init.OutPut = RTC_OUTPUTSOURCE_ALARM;
-	if (HAL_RTC_Init(&hrtc) != HAL_OK) {
-		Error_Handler();
-	}
+  /* USER CODE END RTC_Init 1 */
 
-	/* USER CODE BEGIN Check_RTC_BKUP */
+  /** Initialize RTC Only
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
+  hrtc.Init.OutPut = RTC_OUTPUTSOURCE_ALARM;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/* USER CODE END Check_RTC_BKUP */
+  /* USER CODE BEGIN Check_RTC_BKUP */
 
-	/** Initialize RTC and set the Time and Date
-	 */
-	sTime.Hours = 0;
-	sTime.Minutes = 0;
-	sTime.Seconds = 0;
+  /* USER CODE END Check_RTC_BKUP */
 
-	if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
-		Error_Handler();
-	}
-	DateToUpdate.WeekDay = RTC_WEEKDAY_MONDAY;
-	DateToUpdate.Month = RTC_MONTH_JANUARY;
-	DateToUpdate.Date = 1;
-	DateToUpdate.Year = 0;
+  /** Initialize RTC and set the Time and Date
+  */
+  sTime.Hours = 0;
+  sTime.Minutes = 0;
+  sTime.Seconds = 0;
 
-	if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN RTC_Init 2 */
+  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  DateToUpdate.WeekDay = RTC_WEEKDAY_MONDAY;
+  DateToUpdate.Month = RTC_MONTH_JANUARY;
+  DateToUpdate.Date = 1;
+  DateToUpdate.Year = 0;
+
+  if (HAL_RTC_SetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
 
 //	sAlarm.Alarm = RTC_ALARM_A;
 //	sAlarm.AlarmTime.Hours = 0;
@@ -387,286 +406,335 @@ static void MX_RTC_Init(void) {
 //
 //	HAL_NVIC_SetPriority(RTC_Alarm_IRQn, 0x0F, 0);
 //	HAL_NVIC_EnableIRQ(RTC_Alarm_IRQn);
-	/* USER CODE END RTC_Init 2 */
+  /* USER CODE END RTC_Init 2 */
 
 }
 
 /**
- * @brief SPI1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_SPI1_Init(void) {
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
 
-	/* USER CODE BEGIN SPI1_Init 0 */
+  /* USER CODE BEGIN SPI1_Init 0 */
 
-	/* USER CODE END SPI1_Init 0 */
+  /* USER CODE END SPI1_Init 0 */
 
-	/* USER CODE BEGIN SPI1_Init 1 */
+  /* USER CODE BEGIN SPI1_Init 1 */
 
-	/* USER CODE END SPI1_Init 1 */
-	/* SPI1 parameter configuration*/
-	hspi1.Instance = SPI1;
-	hspi1.Init.Mode = SPI_MODE_MASTER;
-	hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-	hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-	hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-	hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-	hspi1.Init.NSS = SPI_NSS_SOFT;
-	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
-	hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-	hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
-	hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-	hspi1.Init.CRCPolynomial = 10;
-	if (HAL_SPI_Init(&hspi1) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN SPI1_Init 2 */
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
 
-	/* USER CODE END SPI1_Init 2 */
-
-}
-
-/**
- * @brief SPI2 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_SPI2_Init(void) {
-
-	/* USER CODE BEGIN SPI2_Init 0 */
-
-	/* USER CODE END SPI2_Init 0 */
-
-	/* USER CODE BEGIN SPI2_Init 1 */
-
-	/* USER CODE END SPI2_Init 1 */
-	/* SPI2 parameter configuration*/
-	hspi2.Instance = SPI2;
-	hspi2.Init.Mode = SPI_MODE_MASTER;
-	hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-	hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-	hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-	hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
-	hspi2.Init.NSS = SPI_NSS_SOFT;
-	hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
-	hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-	hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-	hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-	hspi2.Init.CRCPolynomial = 10;
-	if (HAL_SPI_Init(&hspi2) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN SPI2_Init 2 */
-
-	/* USER CODE END SPI2_Init 2 */
+  /* USER CODE END SPI1_Init 2 */
 
 }
 
 /**
- * @brief TIM3 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM3_Init(void) {
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
 
-	/* USER CODE BEGIN TIM3_Init 0 */
+  /* USER CODE BEGIN SPI2_Init 0 */
 
-	/* USER CODE END TIM3_Init 0 */
+  /* USER CODE END SPI2_Init 0 */
 
-	TIM_ClockConfigTypeDef sClockSourceConfig = { 0 };
-	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
-	TIM_OC_InitTypeDef sConfigOC = { 0 };
+  /* USER CODE BEGIN SPI2_Init 1 */
 
-	/* USER CODE BEGIN TIM3_Init 1 */
+  /* USER CODE END SPI2_Init 1 */
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI2_Init 2 */
 
-	/* USER CODE END TIM3_Init 1 */
-	htim3.Instance = TIM3;
-	htim3.Init.Prescaler = 71;
-	htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim3.Init.Period = 65535;
-	htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	if (HAL_TIM_Base_Init(&htim3) != HAL_OK) {
-		Error_Handler();
-	}
-	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-	if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK) {
-		Error_Handler();
-	}
-	if (HAL_TIM_PWM_Init(&htim3) != HAL_OK) {
-		Error_Handler();
-	}
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-	sConfigOC.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC.Pulse = 0;
-	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-	if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN TIM3_Init 2 */
-
-	/* USER CODE END TIM3_Init 2 */
-	HAL_TIM_MspPostInit(&htim3);
+  /* USER CODE END SPI2_Init 2 */
 
 }
 
 /**
- * @brief TIM4 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM4_Init(void) {
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
 
-	/* USER CODE BEGIN TIM4_Init 0 */
+  /* USER CODE BEGIN TIM3_Init 0 */
 
-	/* USER CODE END TIM4_Init 0 */
+  /* USER CODE END TIM3_Init 0 */
 
-	TIM_ClockConfigTypeDef sClockSourceConfig = { 0 };
-	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
-	/* USER CODE BEGIN TIM4_Init 1 */
+  /* USER CODE BEGIN TIM3_Init 1 */
 
-	/* USER CODE END TIM4_Init 1 */
-	htim4.Instance = TIM4;
-	htim4.Init.Prescaler = 65535;
-	htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim4.Init.Period = 548;
-	htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-	htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-	if (HAL_TIM_Base_Init(&htim4) != HAL_OK) {
-		Error_Handler();
-	}
-	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-	if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK) {
-		Error_Handler();
-	}
-	sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-	if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN TIM4_Init 2 */
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 71;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 65535;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
 
-	/* USER CODE END TIM4_Init 2 */
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 
 /**
- * Enable DMA controller clock
- */
-static void MX_DMA_Init(void) {
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
 
-	/* DMA controller clock enable */
-	__HAL_RCC_DMA1_CLK_ENABLE();
+  /* USER CODE BEGIN TIM4_Init 0 */
 
-	/* DMA interrupt init */
-	/* DMA1_Channel2_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 14, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-	/* DMA1_Channel3_IRQn interrupt configuration */
-	HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 14, 0);
-	HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 65535;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 548;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
 
 }
 
 /**
- * @brief GPIO Initialization Function
- * @param None
- * @retval None
- */
-static void MX_GPIO_Init(void) {
-	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
 
-	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOC_CLK_ENABLE();
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
+  /* USER CODE BEGIN USART3_Init 0 */
 
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOB, SR_Pin | MAX6675_CS_Pin, GPIO_PIN_RESET);
+  /* USER CODE END USART3_Init 0 */
 
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(SPI2_CS_GPIO_Port, SPI2_CS_Pin, GPIO_PIN_SET);
+  /* USER CODE BEGIN USART3_Init 1 */
 
-	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(SPI2_RST_GPIO_Port, SPI2_RST_Pin, GPIO_PIN_SET);
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
 
-	/*Configure GPIO pins : PA0 PA1 PA2 PA3 */
-	GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /* USER CODE END USART3_Init 2 */
 
-	/*Configure GPIO pin : SR_Pin */
-	GPIO_InitStruct.Pin = SR_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(SR_GPIO_Port, &GPIO_InitStruct);
+}
 
-	/*Configure GPIO pins : MAX6675_CS_Pin SPI2_CS_Pin */
-	GPIO_InitStruct.Pin = MAX6675_CS_Pin | SPI2_CS_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
 
-	/*Configure GPIO pin : PA10 */
-	GPIO_InitStruct.Pin = GPIO_PIN_10;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
-	/*Configure GPIO pin : SPI2_RST_Pin */
-	GPIO_InitStruct.Pin = SPI2_RST_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	HAL_GPIO_Init(SPI2_RST_GPIO_Port, &GPIO_InitStruct);
+  /* DMA interrupt init */
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 14, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 14, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
-	/*Configure GPIO pin : PB4 */
-	GPIO_InitStruct.Pin = GPIO_PIN_4;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
 
-	/*Configure GPIO pin : PB6 */
-	GPIO_InitStruct.Pin = GPIO_PIN_6;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-	/* EXTI interrupt init*/
-	HAL_NVIC_SetPriority(EXTI0_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
-	HAL_NVIC_SetPriority(EXTI1_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(MAX6675_CS_GPIO_Port, MAX6675_CS_Pin, GPIO_PIN_RESET);
 
-	HAL_NVIC_SetPriority(EXTI2_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SR_GPIO_Port, SR_Pin, GPIO_PIN_RESET);
 
-	HAL_NVIC_SetPriority(EXTI3_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SPI2_CS_GPIO_Port, SPI2_CS_Pin, GPIO_PIN_SET);
 
-	HAL_NVIC_SetPriority(EXTI4_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SPI2_RST_GPIO_Port, SPI2_RST_Pin, GPIO_PIN_SET);
 
-	HAL_NVIC_SetPriority(EXTI9_5_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+  /*Configure GPIO pins : PA0 PA1 PA2 PA3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 15, 0);
-	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  /*Configure GPIO pins : MAX6675_CS_Pin SPI2_RST_Pin */
+  GPIO_InitStruct.Pin = MAX6675_CS_Pin|SPI2_RST_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SR_Pin */
+  GPIO_InitStruct.Pin = SR_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SR_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI2_CS_Pin */
+  GPIO_InitStruct.Pin = SPI2_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(SPI2_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 15, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
@@ -680,7 +748,7 @@ uint8_t U8x8Stm32GPIOAndDelay(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int,
 		break;
 	case U8X8_MSG_DELAY_MILLI:
 		/* ms Delay */
-		HAL_Delay(arg_int);
+		//HAL_Delay(arg_int);
 		break;
 	case U8X8_MSG_GPIO_CS:
 		/* Insert codes for SS pin control */
@@ -736,9 +804,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	update = 1;
 }
 
-uint32_t max4(uint32_t a, uint32_t b, uint32_t c, uint32_t d) {
-	return a > b ? a > c ? a > d ? a : d : c > d ? c : d : b > c ? b > d ? b : d
-			: c > d ? c : d;
+static uint32_t max4(uint32_t a, uint32_t b, uint32_t c, uint32_t d) {
+	return  a > b ?
+				a > c ?
+					a > d ? a : d
+				: c > d ? c : d
+			: b > c ?
+					b > d ? b : d
+				: c > d ? c : d;
 }
 
 void HAL_RTCEx_RTCEventCallback(RTC_HandleTypeDef *hrtc) {
@@ -754,29 +827,16 @@ void HAL_RTCEx_RTCEventCallback(RTC_HandleTypeDef *hrtc) {
 			isSilentStop = 0;
 		case 1:
 			SetState(&oven, hotplace);
+#ifdef Debug_WIFI
+			WIFIDebug(&oven);
+#endif
 			break;
 		default:
 			break;
 		}
-		if (oven.isOn == 1) {
-			relay.input = reg;
-			if (relay.oldOutput != GyverRelay_getResultTimer(&relay)) {
-				relay.oldOutput = relay.output;
-				if (relay.output) {
-					oven.profile.state =
-							oven.algorithm->profile[oven.step].state;
-				} else
-					oven.profile.state = OVEN_ZERO;
-				SetState(&oven, hotplace);
-			}
-		}
 		update = 1;
 	}
 }
-
-//void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
-//
-//}
 
 static BTN_STATE EventFlag(Button *btn) {
 	if (btn->key_state == 0 && !btn->short_state
@@ -850,16 +910,16 @@ static inline void MainMenu(void) {
 				memset(&time, 0, sizeof(RTC_TimeTypeDef));
 				time.Minutes = 30;
 				if (pointer != 3)
-					SetCustomHProfile(&hotplace[pointer], pointer, 6, &time);
+					TEMPLATE(SetCustomProfile, Hotplace)(&hotplace[pointer], pointer, 6, &time);
 				else
-					SetCustomOProfile(&oven, 4, 300, &time);
+					TEMPLATE(SetCustomProfile, Oven)(&oven, 4, 300, &time);
 				break;
 			case 0x0004: // short up
 				memset(&time, 0, sizeof(RTC_TimeTypeDef));
 				if (pointer != 3)
-					SetCustomHProfile(&hotplace[pointer], pointer, 0, &time);
+					TEMPLATE(SetCustomProfile, Hotplace)(&hotplace[pointer], pointer, 0, &time);
 				else
-					SetCustomOProfile(&oven, 0, 0, &time);
+					TEMPLATE(SetCustomProfile, Oven)(&oven, 0, 0, &time);
 				isSilentStop = 1;
 				break;
 			case 0x0100: // short center
@@ -909,19 +969,19 @@ static inline void MainMenu(void) {
 						hotplace[0].profile.time.Hours,
 						hotplace[0].profile.time.Minutes,
 						hotplace[0].profile.time.Seconds,
-						GetTempH(hotplace[0].profile.state));
+						TEMPLATE(GetState, HOTPLACE_STATE)(hotplace[0].profile.state));
 				u8g2_DrawUTF8(&u8g2, 17, 16 * 1 - 2, (const char*) stime);
 				sprintf((char*) stime, "%02d:%02d:%02d %1d",
 						hotplace[1].profile.time.Hours,
 						hotplace[1].profile.time.Minutes,
 						hotplace[1].profile.time.Seconds,
-						GetTempH(hotplace[1].profile.state));
+						TEMPLATE(GetState, HOTPLACE_STATE)(hotplace[1].profile.state));
 				u8g2_DrawUTF8(&u8g2, 17, 16 * 2 - 2, (const char*) stime);
 				sprintf((char*) stime, "%02d:%02d:%02d %1d %3d00",
 						hotplace[2].profile.time.Hours,
 						hotplace[2].profile.time.Minutes,
 						hotplace[2].profile.time.Seconds,
-						GetTempH(hotplace[2].profile.state),
+						TEMPLATE(GetState, HOTPLACE_STATE)(hotplace[2].profile.state),
 						oven.profile.targetTemp);
 				u8g2_DrawUTF8(&u8g2, 17, 16 * 3 - 2, (const char*) stime);
 				sprintf((char*) stime, "%02d:%02d:%02d   %5d",
@@ -944,7 +1004,7 @@ static inline void MainMenu(void) {
 // arg - Hotplace Number
 static void HotplaceMenu(uint8_t arg) {
 	pointer = 0;
-	uint8_t temp = GetTempH(hotplace[arg].profile.state), stime[30];
+	uint8_t temp = TEMPLATE(GetState, HOTPLACE_STATE)(hotplace[arg].profile.state), stime[30];
 	RTC_TimeTypeDef time = hotplace[arg].profile.time;
 	HotplaceMenu: ;
 	pointer_max = 2;
@@ -958,7 +1018,7 @@ static void HotplaceMenu(uint8_t arg) {
 					temp = 6;
 				if (time.Hours == 0 && time.Minutes == 0 && time.Seconds == 0)
 					time.Minutes = 30;
-				SetCustomHProfile(&hotplace[arg], arg, temp, &time);
+				TEMPLATE(SetCustomProfile, Hotplace)(&hotplace[arg], arg, temp, &time);
 				pointer = arg;
 				return;
 				break;
@@ -976,7 +1036,7 @@ static void HotplaceMenu(uint8_t arg) {
 					if (time.Hours == 0 && time.Minutes == 0
 							&& time.Seconds == 0)
 						time.Minutes = 30;
-					SetCustomHProfile(&hotplace[arg], arg, temp, &time);
+					TEMPLATE(SetCustomProfile, Hotplace)(&hotplace[arg], arg, temp, &time);
 					pointer = arg;
 					return;
 				default:
@@ -1028,7 +1088,7 @@ static void HotplaceMenu(uint8_t arg) {
 static void OvenMenu(uint8_t arg) {
 	pointer = 0;
 	uint16_t temp = oven.algorithm->profile[oven.step].targetTemp;
-	uint8_t oState = GetStateO(oven.algorithm->profile[oven.step].state);
+	uint8_t oState = TEMPLATE(GetState, OVEN_STATE)(oven.algorithm->profile[oven.step].state);
 	RTC_TimeTypeDef time = oven.profile.time;
 	uint8_t stime[30];
 	char c[13];
@@ -1046,7 +1106,7 @@ static void OvenMenu(uint8_t arg) {
 					temp = 300;
 				if (time.Hours == 0 && time.Minutes == 0 && time.Seconds == 0)
 					time.Minutes = 30;
-				SetCustomOProfile(&oven, oState, temp, &time);
+				TEMPLATE(SetCustomProfile, Oven)(&oven, oState, temp, &time);
 				pointer = arg;
 				return;
 				break;
@@ -1334,50 +1394,50 @@ static uint16_t StateMenuO(uint8_t arg) {
 	}
 }
 
-static void CustomAlgorithm(uint8_t arg) {
-	pointer_max = 11;
-	pointer = 0;
-	btns = 0;
-	while (1) {
-		BtnCheck();
-		if (btns) {
-			switch (btns) {
-			case 0x0001: // short right
-				break;
-			case 0x0002: // long right
-				break;
-			case 0x0004: // short up
-				break;
-			case 0x0008: // long up
-				break;
-			case 0x0010: // short down
-				break;
-			case 0x0020: // long down
-				break;
-			case 0x0040: // short left
-				break;
-			case 0x0080: // long left
-				break;
-			case 0x0100: // short center
-				break;
-			case 0x0200: // long center
-				return;
-			default:
-				break;
-			}
-			btns = 0;
-		}
-		if (update) {
-			update = 0;
-			u8g2_FirstPage(&u8g2);
-			do {
+//static void CustomAlgorithm(uint8_t arg) {
+//	pointer_max = 11;
+//	pointer = 0;
+//	btns = 0;
+//	while (1) {
+//		BtnCheck();
+//		if (btns) {
+//			switch (btns) {
+//			case 0x0001: // short right
+//				break;
+//			case 0x0002: // long right
+//				break;
+//			case 0x0004: // short up
+//				break;
+//			case 0x0008: // long up
+//				break;
+//			case 0x0010: // short down
+//				break;
+//			case 0x0020: // long down
+//				break;
+//			case 0x0040: // short left
+//				break;
+//			case 0x0080: // long left
+//				break;
+//			case 0x0100: // short center
+//				break;
+//			case 0x0200: // long center
+//				return;
+//			default:
+//				break;
+//			}
+//			btns = 0;
+//		}
+//		if (update) {
+//			update = 0;
+//			u8g2_FirstPage(&u8g2);
+//			do {
+//
+//			} while (u8g2_NextPage(&u8g2));
+//		}
+//	}
+//}
 
-			} while (u8g2_NextPage(&u8g2));
-		}
-	}
-}
-
-// TtEMPLATE MENU
+// TEMPLATE MENU
 //void TEMPLATEMENU(uint8_t arg) {
 //	pointer_max = ;
 //	pointer = 0;
@@ -1423,14 +1483,15 @@ static void CustomAlgorithm(uint8_t arg) {
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
-void Error_Handler(void) {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
@@ -1449,5 +1510,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+/*****END OF FILE****/
